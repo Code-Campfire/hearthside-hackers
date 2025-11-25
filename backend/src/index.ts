@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { checkDatabaseConnection } from './db.js';
+import authRouter from './routes/auth.js';
 
 dotenv.config();
 
@@ -30,6 +31,9 @@ app.get('/api/health', async (_req: Request, res: Response) => {
     });
   }
 });
+
+// Auth routes
+app.use('/api/auth', authRouter);
 
 // Start server
 app.listen(PORT, () => {
