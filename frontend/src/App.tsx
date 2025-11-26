@@ -4,6 +4,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { HomePage } from './pages/HomePage';
+import { TransactionPage } from './pages/TransactionPage';
 
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -31,6 +32,14 @@ function AppContent() {
         element={
           <ProtectedRoute>
             <HomePage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/transactions"
+        element={
+          <ProtectedRoute>
+            <TransactionPage />
           </ProtectedRoute>
         }
       />
