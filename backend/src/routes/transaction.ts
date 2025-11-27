@@ -63,23 +63,42 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
 router.get('/', authenticateToken, async (req: Request, res: Response) => {
   try {
     const userId = req.userId;
-    const { limit = 50, offset = 0 } = req.query;
+    const { limit = 50, offset = 0, transaction_type } = req.query;
+
+    // Build the WHERE clause based on transaction_type filter
+    let whereClause = 'WHERE user_id = $1';
+    const queryParams: any[] = [userId];
+    let paramCount = 2;
+
+    // Add transaction_type filter if provided and not 'all'
+    if (transaction_type && transaction_type !== 'all') {
+      if (!['income', 'expense'].includes(transaction_type as string)) {
+        res.status(400).json({
+          success: false,
+          message: 'transaction_type must be "all", "income", or "expense"',
+        });
+        return;
+      }
+      whereClause += ` AND transaction_type = $${paramCount}`;
+      queryParams.push(transaction_type);
+      paramCount++;
+    }
 
     const query = `
       SELECT * FROM transactions
-      WHERE user_id = $1
+      ${whereClause}
       ORDER BY transaction_date DESC, created_at DESC
-      LIMIT $2 OFFSET $3
+      LIMIT $${paramCount} OFFSET $${paramCount + 1}
     `;
 
-    const result = await pool.query(query, [
-      userId,
-      parseInt(limit as string),
-      parseInt(offset as string),
-    ]);
+    queryParams.push(parseInt(limit as string), parseInt(offset as string));
 
-    const countQuery = 'SELECT COUNT(*) FROM transactions WHERE user_id = $1';
-    const countResult = await pool.query(countQuery, [userId]);
+    const result = await pool.query(query, queryParams);
+
+    // Count query with same filter
+    const countQuery = `SELECT COUNT(*) FROM transactions ${whereClause}`;
+    const countParams = queryParams.slice(0, queryParams.length - 2); // Remove limit and offset
+    const countResult = await pool.query(countQuery, countParams);
     const total = parseInt(countResult.rows[0].count);
 
     res.status(200).json({

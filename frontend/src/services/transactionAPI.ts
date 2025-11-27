@@ -42,11 +42,21 @@ const getAuthHeaders = (token: string) => ({
 });
 
 export const transactionAPI = {
-  async fetchTransactions( token: string, limit: number = 50, offset: number = 0): Promise<FetchTransactionsResponse> {
+  async fetchTransactions(
+    token: string,
+    limit: number = 50,
+    offset: number = 0,
+    transaction_type?: 'all' | 'income' | 'expense'
+  ): Promise<FetchTransactionsResponse> {
      try {
+      const params: any = { limit, offset };
+      if (transaction_type) {
+        params.transaction_type = transaction_type;
+      }
+
       const response = await axios.get(`${API_URL}/api/transactions`, {
         headers: getAuthHeaders(token),
-        params: { limit, offset },
+        params,
       });
       return response.data;
     } catch (error) {

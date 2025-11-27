@@ -14,6 +14,7 @@ export function TransactionPage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+    const [transactionTypeFilter, setTransactionTypeFilter] = useState<'all' | 'income' | 'expense'>('all');
 
     useEffect(() => {
         const fetchTransactions = async () => {
@@ -25,7 +26,7 @@ export function TransactionPage() {
             try {
                 setIsLoading(true);
                 setError(null);
-                const response = await transactionAPI.fetchTransactions(token);
+                const response = await transactionAPI.fetchTransactions(token, 50, 0, transactionTypeFilter);
                 setTransactions(response.data);
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Failed to load transactions');
@@ -35,7 +36,7 @@ export function TransactionPage() {
             }
         };
         fetchTransactions();
-    }, [token, navigate]);
+    }, [token, navigate, transactionTypeFilter]);
 
     const handleDeleteTransaction = async (id: number) => {
         if (!token) return;
@@ -64,6 +65,20 @@ export function TransactionPage() {
         ));
         setIsEditModalOpen(false);
         setSelectedTransaction(null);
+    };
+
+    const cycleTransactionTypeFilter = () => {
+        setTransactionTypeFilter(current => {
+            if (current === 'all') return 'income';
+            if (current === 'income') return 'expense';
+            return 'all';
+        });
+    };
+
+    const getFilterButtonText = () => {
+        if (transactionTypeFilter === 'all') return 'All Types';
+        if (transactionTypeFilter === 'income') return 'Income Only';
+        return 'Expense Only';
     };
 
     const formatDate = (dateString: string) => {
@@ -99,8 +114,17 @@ export function TransactionPage() {
                         <button className="bg-white hover:bg-gray-100 text-black font-bold py-2 px-6 rounded-lg transition border border-gray-300">
                             Scan Receipt
                         </button>
-                        <button className="bg-white hover:bg-gray-100 text-black font-bold py-2 px-6 rounded-lg transition border border-gray-300">
-                            All Types
+                        <button
+                            onClick={cycleTransactionTypeFilter}
+                            className={`font-bold py-2 px-6 rounded-lg transition border ${
+                                transactionTypeFilter === 'all'
+                                    ? 'bg-white hover:bg-gray-100 text-black border-gray-300'
+                                    : transactionTypeFilter === 'income'
+                                    ? 'bg-green-600 hover:bg-green-700 text-white border-green-600'
+                                    : 'bg-red-600 hover:bg-red-700 text-white border-red-600'
+                            }`}
+                        >
+                            {getFilterButtonText()}
                         </button>
                         <button className="bg-white hover:bg-gray-100 text-black font-bold py-2 px-6 rounded-lg transition border border-gray-300">
                             All Categories
