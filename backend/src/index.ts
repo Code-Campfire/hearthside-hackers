@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { checkDatabaseConnection } from './db.js';
 import authRouter from './routes/auth.js';
+import transactionRouter from './routes/transaction.js';
 
 dotenv.config();
 
@@ -34,6 +35,9 @@ app.get('/api/health', async (_req: Request, res: Response) => {
 
 // Auth routes
 app.use('/api/auth', authRouter);
+
+// Transaction routes
+app.use('/api/transactions', transactionRouter);
 
 // Start server
 app.listen(PORT, () => {
