@@ -30,7 +30,6 @@ export function TransactionPage() {
                 setTransactions(response.data);
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Failed to load transactions');
-                console.error('Error fetching transactions:', err);
             } finally {
                 setIsLoading(false);
             }

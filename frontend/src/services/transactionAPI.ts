@@ -1,6 +1,6 @@
 import axios, { AxiosError } from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = 'http://localhost:3001';
 
 export interface Transaction {
   id: number;
@@ -60,10 +60,7 @@ export const transactionAPI = {
       });
       return response.data;
     } catch (error) {
-      const axiosError = error as AxiosError<ApiError>;
-      throw new Error(
-        axiosError.response?.data?.message || 'Failed to fetch transactions'
-      );
+      return Promise.reject(error);
     }
   },
 

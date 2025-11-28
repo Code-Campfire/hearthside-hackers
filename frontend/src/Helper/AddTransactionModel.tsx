@@ -65,7 +65,6 @@ export function AddTransactionModal({isOpen, onClose, onTransactionAdded, token}
         category_id: '',
       });
 
-      // Close modal after 1 second
       setTimeout(() => {
         onClose();
         setSuccess(false);
@@ -200,7 +199,7 @@ export function AddTransactionModal({isOpen, onClose, onTransactionAdded, token}
         </form>
 
         <div className="flex gap-3 p-6 border-t border-gray-200">
-          <button onClick={onClose}disabled={isSubmitting}
+          <button onClick={onClose} disabled={isSubmitting}
             className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition disabled:opacity-50">
             Cancel
           </button>

@@ -51,7 +51,6 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
       data: result.rows[0],
     })
 } catch (error) {
-    console.error('Error adding transaction:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to add transaction',
@@ -65,12 +64,10 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
     const userId = req.userId;
     const { limit = 50, offset = 0, transaction_type } = req.query;
 
-    // Build the WHERE clause based on transaction_type filter
     let whereClause = 'WHERE user_id = $1';
     const queryParams: any[] = [userId];
     let paramCount = 2;
 
-    // Add transaction_type filter if provided and not 'all'
     if (transaction_type && transaction_type !== 'all') {
       if (!['income', 'expense'].includes(transaction_type as string)) {
         res.status(400).json({
@@ -95,9 +92,8 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
 
     const result = await pool.query(query, queryParams);
 
-    // Count query with same filter
     const countQuery = `SELECT COUNT(*) FROM transactions ${whereClause}`;
-    const countParams = queryParams.slice(0, queryParams.length - 2); // Remove limit and offset
+    const countParams = queryParams.slice(0, queryParams.length - 2);
     const countResult = await pool.query(countQuery, countParams);
     const total = parseInt(countResult.rows[0].count);
 
@@ -111,7 +107,6 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
       },
     });
   } catch (error) {
-    console.error('Error fetching transactions:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch transactions',
@@ -145,7 +140,6 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response) => {
       data: result.rows[0],
     });
   } catch (error) {
-    console.error('Error fetching transaction:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch transaction',
@@ -239,7 +233,6 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
       data: result.rows[0],
     });
   } catch (error) {
-    console.error('Error updating transaction:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to update transaction',
@@ -275,7 +268,6 @@ router.delete('/:id', authenticateToken, async (req: Request, res: Response) => 
       data: result.rows[0],
     });
   } catch (error) {
-    console.error('Error deleting transaction:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to delete transaction',
