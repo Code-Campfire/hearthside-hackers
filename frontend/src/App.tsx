@@ -5,6 +5,7 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { HomePage } from './pages/HomePage';
 import { TransactionPage } from './pages/TransactionPage';
+import { BillsAndReminders } from './pages/Bills';
 
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -40,6 +41,14 @@ function AppContent() {
         element={
           <ProtectedRoute>
             <TransactionPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/bills"
+        element={
+          <ProtectedRoute>
+            <BillsAndReminders />
           </ProtectedRoute>
         }
       />
