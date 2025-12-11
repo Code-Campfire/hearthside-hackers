@@ -51,6 +51,21 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
       return;
     }
 
+    if (category_id) {
+      const categoryCheck = await pool.query(
+        'SELECT id FROM categories WHERE id = $1 AND user_id = $2 AND is_active = true',
+        [category_id, userId]
+      );
+
+      if (categoryCheck.rows.length === 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid category_id: category does not exist or does not belong to this user',
+        });
+        return;
+      }
+    }
+
     const query = `
       INSERT INTO bills (user_id, bill_name, amount, due_day, category_id, is_paid)
       VALUES ($1, $2, $3, $4, $5, $6)
@@ -85,20 +100,22 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
     const userId = req.userId;
     const { is_paid } = req.query;
 
-    let whereClause = 'WHERE user_id = $1';
+    let whereClause = 'WHERE b.user_id = $1';
     const queryParams: (number | boolean)[] = [userId!];
     let paramCount = 2;
 
     if (is_paid !== undefined) {
-      whereClause += ` AND is_paid = $${paramCount}`;
+      whereClause += ` AND b.is_paid = $${paramCount}`;
       queryParams.push(is_paid === 'true');
       paramCount++;
     }
 
     const query = `
-      SELECT * FROM bills
+      SELECT b.*, c.name as category_name, c.type as category_type
+      FROM bills b
+      LEFT JOIN categories c ON b.category_id = c.id
       ${whereClause}
-      ORDER BY due_day ASC, created_at DESC
+      ORDER BY b.due_day ASC, b.created_at DESC
     `;
 
     const result = await pool.query(query, queryParams);
@@ -122,8 +139,10 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response) => {
     const { id } = req.params;
 
     const query = `
-      SELECT * FROM bills
-      WHERE id = $1 AND user_id = $2
+      SELECT b.*, c.name as category_name, c.type as category_type
+      FROM bills b
+      LEFT JOIN categories c ON b.category_id = c.id
+      WHERE b.id = $1 AND b.user_id = $2
     `;
 
     const result = await pool.query(query, [id, userId]);
@@ -212,6 +231,20 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
       paramCount++;
     }
     if (category_id !== undefined) {
+      if (category_id !== null) {
+        const categoryCheck = await pool.query(
+          'SELECT id FROM categories WHERE id = $1 AND user_id = $2 AND is_active = true',
+          [category_id, userId]
+        );
+
+        if (categoryCheck.rows.length === 0) {
+          res.status(400).json({
+            success: false,
+            message: 'Invalid category_id: category does not exist or does not belong to this user',
+          });
+          return;
+        }
+      }
       updates.push(`category_id = $${paramCount}`);
       values.push(category_id);
       paramCount++;

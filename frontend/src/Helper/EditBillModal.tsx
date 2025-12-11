@@ -1,4 +1,5 @@
 import { useState, type FormEvent, useEffect } from 'react';
+import CategorySelector from './CategorySelector';
 
 interface EditBillModalProps {
     isOpen: boolean;
@@ -12,7 +13,7 @@ interface EditBillModalProps {
         frequency?: string;
         notes?: string;
     } | null;
-    onSubmit?: (billData: { name: string; amount: string; dueDate: string; category: string }) => Promise<void>;
+    onSubmit?: (billData: { name: string; amount: string; dueDate: string; category: number | null }) => Promise<void>;
 }
 
 export const EditBillModal = ({ isOpen, onClose, bill, onSubmit }: EditBillModalProps) => {
@@ -20,7 +21,7 @@ export const EditBillModal = ({ isOpen, onClose, bill, onSubmit }: EditBillModal
         name: '',
         amount: '',
         dueDate: '',
-        category: ''
+        categoryId: null as number | null
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -30,7 +31,7 @@ export const EditBillModal = ({ isOpen, onClose, bill, onSubmit }: EditBillModal
                 name: bill.name,
                 amount: bill.amount.toString(),
                 dueDate: bill.dueDate,
-                category: bill.category
+                categoryId: bill.category ? parseInt(bill.category, 10) : null
             });
         }
     }, [bill]);
@@ -45,7 +46,7 @@ export const EditBillModal = ({ isOpen, onClose, bill, onSubmit }: EditBillModal
                     name: formData.name,
                     amount: formData.amount,
                     dueDate: formData.dueDate,
-                    category: formData.category,
+                    category: formData.categoryId,
                 });
             } catch (error) {
                 console.error('Error updating bill:', error);
@@ -137,21 +138,12 @@ export const EditBillModal = ({ isOpen, onClose, bill, onSubmit }: EditBillModal
                         />
                     </div>
 
-                    <div>
-                        <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-                            Category ID
-                        </label>
-                        <input
-                            type="number"
-                            id="category"
-                            name="category"
-                            value={formData.category}
-                            onChange={handleChange}
-                            min="1"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="e.g., 1, 2, 3"
-                        />
-                    </div>
+                    <CategorySelector
+                        value={formData.categoryId}
+                        onChange={(categoryId) => setFormData({ ...formData, categoryId })}
+                        label="Category"
+                        required={false}
+                    />
 
                     <div className="flex gap-3 pt-4">
                         <button

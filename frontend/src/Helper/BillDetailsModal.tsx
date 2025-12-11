@@ -8,6 +8,7 @@ interface BillDetailsModalProps {
         name: string;
         dueDate: string;
         category: string;
+        categoryName?: string;
         amount: number;
         frequency?: string;
         notes?: string;
@@ -50,7 +51,7 @@ export const BillDetailsModal = ({ isOpen, onClose, onEdit, onDelete, bill }: Bi
 
                     <div>
                         <h3 className="text-sm font-medium text-gray-500 mb-1">Category</h3>
-                        <p className="text-lg font-semibold text-gray-800">{bill.category}</p>
+                        <p className="text-lg font-semibold text-gray-800">{bill.categoryName || bill.category || 'Uncategorized'}</p>
                     </div>
 
                     {bill.frequency && (

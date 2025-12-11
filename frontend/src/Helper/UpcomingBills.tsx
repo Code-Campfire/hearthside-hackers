@@ -5,6 +5,7 @@ interface Bill {
     name: string;
     dueDate: string;
     category: string;
+    categoryName?: string;
     amount: number;
 }
 
@@ -25,6 +26,7 @@ export const UpcomingBills = ({ bills, onBillClick }: UpcomingBillsProps) => {
                             name={bill.name}
                             dueDate={bill.dueDate}
                             category={bill.category}
+                            categoryName={bill.categoryName}
                             amount={bill.amount}
                             onClick={() => onBillClick?.(bill)}
                         />

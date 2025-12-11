@@ -13,6 +13,7 @@ interface Bill {
     name: string;
     dueDate: string;
     category: string;
+    categoryName?: string;
     amount: number;
     frequency?: string;
     notes?: string;
@@ -48,6 +49,7 @@ export const BillsAndReminders = () => {
                 name: bill.bill_name,
                 dueDate: `${bill.due_day}`,
                 category: bill.category_id?.toString() || '',
+                categoryName: bill.category_name || 'Uncategorized',
                 amount: Number(bill.amount),
                 frequency: 'monthly',
                 notes: ''

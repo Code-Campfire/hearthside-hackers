@@ -9,6 +9,8 @@ export interface Bill {
   amount: number;
   due_day: number;
   category_id?: number;
+  category_name?: string;
+  category_type?: string;
   is_paid: boolean;
   created_at: string;
 }
