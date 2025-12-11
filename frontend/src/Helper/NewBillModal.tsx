@@ -1,30 +1,48 @@
-import { useState, FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
 
 interface NewBillModalProps {
     isOpen: boolean;
     onClose: () => void;
+    onSubmit?: (billData: { name: string; amount: string; dueDate: string; category: string }) => Promise<void>;
 }
 
-export const NewBillModal = ({ isOpen, onClose }: NewBillModalProps) => {
+export const NewBillModal = ({ isOpen, onClose, onSubmit }: NewBillModalProps) => {
     const [formData, setFormData] = useState({
         name: '',
         amount: '',
         dueDate: '',
-        frequency: 'monthly',
-        category: '',
-        notes: ''
+        category: ''
     });
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleSubmit = (e: FormEvent) => {
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
+
+        if (onSubmit) {
+            try {
+                setIsSubmitting(true);
+                await onSubmit({
+                    name: formData.name,
+                    amount: formData.amount,
+                    dueDate: formData.dueDate,
+                    category: formData.category,
+                });
+            } catch (error) {
+                console.error('Error submitting bill:', error);
+                alert('Failed to add bill. Please try again.');
+                setIsSubmitting(false);
+                return;
+            } finally {
+                setIsSubmitting(false);
+            }
+        }
+
         onClose();
         setFormData({
             name: '',
             amount: '',
             dueDate: '',
-            frequency: 'monthly',
-            category: '',
-            notes: ''
+            category: ''
         });
     };
 
@@ -71,58 +89,29 @@ export const NewBillModal = ({ isOpen, onClose }: NewBillModalProps) => {
 
                     <div>
                         <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-1">
-                            Due Date
+                            Due Day of Month
                         </label>
-                        <input type="date" id="dueDate" name="dueDate"
+                        <input type="number" id="dueDate" name="dueDate"
                             value={formData.dueDate} onChange={handleChange} required
+                            min="1" max="31"
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            placeholder="e.g., 15 for the 15th of each month"
                         />
-                    </div>
-
-                    <div>
-                        <label htmlFor="frequency" className="block text-sm font-medium text-gray-700 mb-1">
-                            Frequency
-                        </label>
-                        <select id="frequency" name="frequency"
-                            value={formData.frequency} onChange={handleChange} required
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="weekly">Weekly</option>
-                            <option value="bi-weekly">Bi-Weekly</option>
-                            <option value="monthly">Monthly</option>
-                            <option value="quarterly">Quarterly</option>
-                            <option value="yearly">Yearly</option>
-                            <option value="one-time">One-Time</option>
-                        </select>
                     </div>
 
                     <div>
                         <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-                            Category
+                            Category ID
                         </label>
                         <input
-                            type="text"
+                            type="number"
                             id="category"
                             name="category"
                             value={formData.category}
                             onChange={handleChange}
+                            min="1"
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="e.g., Utilities, Rent, Insurance"
-                        />
-                    </div>
-
-                    <div>
-                        <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
-                            Notes
-                        </label>
-                        <textarea
-                            id="notes"
-                            name="notes"
-                            value={formData.notes}
-                            onChange={handleChange}
-                            rows={3}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Additional details..."
+                            placeholder="e.g., 1, 2, 3"
                         />
                     </div>
 
@@ -133,9 +122,10 @@ export const NewBillModal = ({ isOpen, onClose }: NewBillModalProps) => {
                             Cancel
                         </button>
                         <button type="submit"
-                            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+                            disabled={isSubmitting}
+                            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
                         >
-                            Add Bill
+                            {isSubmitting ? 'Adding...' : 'Add Bill'}
                         </button>
                     </div>
                 </form>

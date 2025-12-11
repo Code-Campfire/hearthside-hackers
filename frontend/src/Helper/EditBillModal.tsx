@@ -1,4 +1,4 @@
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, type FormEvent, useEffect } from 'react';
 
 interface EditBillModalProps {
     isOpen: boolean;
@@ -12,17 +12,17 @@ interface EditBillModalProps {
         frequency?: string;
         notes?: string;
     } | null;
+    onSubmit?: (billData: { name: string; amount: string; dueDate: string; category: string }) => Promise<void>;
 }
 
-export const EditBillModal = ({ isOpen, onClose, bill }: EditBillModalProps) => {
+export const EditBillModal = ({ isOpen, onClose, bill, onSubmit }: EditBillModalProps) => {
     const [formData, setFormData] = useState({
         name: '',
         amount: '',
         dueDate: '',
-        frequency: 'monthly',
-        category: '',
-        notes: ''
+        category: ''
     });
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
         if (bill) {
@@ -30,15 +30,33 @@ export const EditBillModal = ({ isOpen, onClose, bill }: EditBillModalProps) => 
                 name: bill.name,
                 amount: bill.amount.toString(),
                 dueDate: bill.dueDate,
-                frequency: bill.frequency || 'monthly',
-                category: bill.category,
-                notes: bill.notes || ''
+                category: bill.category
             });
         }
     }, [bill]);
 
-    const handleSubmit = (e: FormEvent) => {
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
+
+        if (onSubmit) {
+            try {
+                setIsSubmitting(true);
+                await onSubmit({
+                    name: formData.name,
+                    amount: formData.amount,
+                    dueDate: formData.dueDate,
+                    category: formData.category,
+                });
+            } catch (error) {
+                console.error('Error updating bill:', error);
+                alert('Failed to update bill. Please try again.');
+                setIsSubmitting(false);
+                return;
+            } finally {
+                setIsSubmitting(false);
+            }
+        }
+
         onClose();
     };
 
@@ -69,7 +87,7 @@ export const EditBillModal = ({ isOpen, onClose, bill }: EditBillModalProps) => 
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
                     <div>
                         <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-                            Bill Name *
+                            Bill Name
                         </label>
                         <input
                             type="text"
@@ -85,7 +103,7 @@ export const EditBillModal = ({ isOpen, onClose, bill }: EditBillModalProps) => 
 
                     <div>
                         <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
-                            Amount *
+                            Amount
                         </label>
                         <input
                             type="number"
@@ -103,68 +121,35 @@ export const EditBillModal = ({ isOpen, onClose, bill }: EditBillModalProps) => 
 
                     <div>
                         <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700 mb-1">
-                            Due Date *
+                            Due Day of Month
                         </label>
                         <input
-                            type="text"
+                            type="number"
                             id="dueDate"
                             name="dueDate"
                             value={formData.dueDate}
                             onChange={handleChange}
                             required
+                            min="1"
+                            max="31"
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="e.g., Dec 15, 2025 or 1st of every month"
+                            placeholder="e.g., 15 for the 15th of each month"
                         />
-                    </div>
-
-                    <div>
-                        <label htmlFor="frequency" className="block text-sm font-medium text-gray-700 mb-1">
-                            Frequency *
-                        </label>
-                        <select
-                            id="frequency"
-                            name="frequency"
-                            value={formData.frequency}
-                            onChange={handleChange}
-                            required
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="weekly">Weekly</option>
-                            <option value="bi-weekly">Bi-Weekly</option>
-                            <option value="monthly">Monthly</option>
-                            <option value="quarterly">Quarterly</option>
-                            <option value="yearly">Yearly</option>
-                            <option value="one-time">One-Time</option>
-                        </select>
                     </div>
 
                     <div>
                         <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-                            Category
+                            Category ID
                         </label>
                         <input
-                            type="text"
+                            type="number"
                             id="category"
                             name="category"
                             value={formData.category}
                             onChange={handleChange}
+                            min="1"
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="e.g., Utilities, Rent, Insurance"
-                        />
-                    </div>
-
-                    <div>
-                        <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
-                            Notes
-                        </label>
-                        <textarea
-                            id="notes"
-                            name="notes"
-                            value={formData.notes}
-                            onChange={handleChange}
-                            rows={3}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            placeholder="Additional details..."
+                            placeholder="e.g., 1, 2, 3"
                         />
                     </div>
 
@@ -178,9 +163,10 @@ export const EditBillModal = ({ isOpen, onClose, bill }: EditBillModalProps) => 
                         </button>
                         <button
                             type="submit"
-                            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+                            disabled={isSubmitting}
+                            className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
                         >
-                            Save Changes
+                            {isSubmitting ? 'Saving...' : 'Save Changes'}
                         </button>
                     </div>
                 </form>
