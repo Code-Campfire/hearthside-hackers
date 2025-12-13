@@ -1,4 +1,4 @@
-import { Route, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export const HomePage = () => {
@@ -39,8 +39,10 @@ export const HomePage = () => {
           </div>
 
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold text-gray-800 mb-4">Categories</h2>
-            <p className="text-gray-600">Organize your spending by category</p>
+            <button className="text-xl font-bold text-gray-800 mb-4 cursor-pointer" onClick={() => {
+              navigate('/bills');
+            }}>Bills</button>
+            <p className="text-gray-600">Check your previous and upcoming bills</p>
           </div>
 
           <div className="bg-white rounded-lg shadow-md p-6">
