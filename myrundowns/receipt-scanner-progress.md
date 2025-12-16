@@ -1,7 +1,36 @@
 # Receipt Scanner Implementation Progress
 
 **Date:** 2025-12-16 (Updated)
-**Status:** ✅ COMPLETE - Ready for Testing
+**Status:** ✅ IMPLEMENTED - Needs Accuracy Improvements
+
+---
+
+## 🔒 IMPORTANT: Security & Secrets Management
+
+### Files That Are Secret (NOT in Git):
+- ❌ `backend/.env` - Contains actual database passwords, JWT secrets
+- ❌ `frontend/.env` - Contains API URLs
+- ❌ `backend/config/google-vision-key.json` - **Google Cloud API credentials (HIGHLY SENSITIVE)**
+- ❌ `backend/uploads/` - User-uploaded receipts
+
+### Files That Are Safe (IN Git):
+- ✅ `backend/.env.example` - Template for teammates
+- ✅ `frontend/.env.example` - Template for teammates
+- ✅ `backend/config/README.md` - Setup instructions for Google Cloud
+- ✅ `.gitignore` - Protects all sensitive files
+
+### How Teammates Get Set Up:
+1. Clone the repo
+2. Run: `cp backend/.env.example backend/.env`
+3. Run: `cp frontend/.env.example frontend/.env`
+4. Follow `backend/config/README.md` to get Google Cloud credentials
+5. **OR** get credentials from you via secure channel (password manager, Signal, etc.)
+
+### ⚠️ Never commit these files!
+The `.gitignore` protects them, but double-check before pushing:
+```bash
+git status --ignored | grep -E "(\.env$|google-vision-key)"
+```
 
 ---
 
@@ -362,19 +391,137 @@ CREATE TABLE receipts (
 - [x] Credentials verified in container
 - [x] Uploads directory verified in container
 
-**Status: 100% Complete - Ready for Testing! 🎉**
+**Status: Feature Complete - Accuracy Needs Work ⚠️**
+
+---
+
+## ⚠️ Known Issues & Accuracy Problems
+
+### Current Bugs (As of 2025-12-16):
+
+**1. Total Amount Extraction Issues**
+- **Problem**: Parser often picks up subtotal instead of final total
+- **Example**: Receipt with subtotal $145.00 + tax $9.06 = $154.06 total
+  - Scanner extracted: $145.00 (incorrect - picked subtotal)
+  - Should extract: $154.06 (correct total)
+- **Impact**: Users must manually edit the amount in review screen
+- **Root Cause**: OCR text is often jumbled/truncated, making it hard to distinguish between subtotal and total
+
+**2. Tax Extraction Issues**
+- **Problem**: Parser extracts tax percentage instead of tax dollar amount
+- **Example**: Receipt shows "Sales Tax 6.25% = $9.06"
+  - Scanner extracted: 6.25 (incorrect - that's the percentage)
+  - Should extract: 9.06 (the dollar amount)
+- **Attempted Fix**: Added logic to ignore amounts < $1 (likely percentages)
+- **Status**: Still not working reliably
+
+**3. Parser Logic Improvements Attempted**
+- ✅ Added fallback: Calculate total = subtotal + tax when total not found
+- ✅ Added validation: If total < subtotal, recalculate from subtotal + tax
+- ❌ Still fails when tax amount isn't extracted correctly
+- ❌ OCR text truncation causes missing data
+
+### Why Accuracy is Challenging:
+
+1. **Receipt Format Variation**: Every store formats receipts differently
+2. **OCR Text Jumbling**: Vision API returns text in unpredictable order
+3. **Text Truncation**: Some receipt text gets cut off in OCR output
+4. **Ambiguous Labels**: "TOTAL", "SUBTOTAL", "AMOUNT DUE" all appear similarly
+5. **Multiple Amounts**: Receipts have many numbers (prices, quantities, totals)
+
+---
+
+## 🔧 Next Steps for Improvement
+
+### High Priority:
+1. **Improve Total Detection Logic**
+   - Look for largest amount in receipt as fallback
+   - Better pattern matching for "FINAL TOTAL", "AMOUNT DUE", "BALANCE"
+   - Calculate from line items if available
+
+2. **Better Tax Extraction**
+   - Search for dollar amounts near "tax" keyword more aggressively
+   - Calculate tax from subtotal * percentage if found
+   - Look for tax in bottom 20% of receipt only
+
+3. **Add More Fallback Logic**
+   - If we find subtotal and individual line items, sum them
+   - Cross-validate: does subtotal + tax = total?
+   - Flag low-confidence extractions more clearly
+
+### Medium Priority:
+4. **Implement Item-Level Extraction** (requested by user)
+   - Extract individual line items with prices
+   - Would help calculate totals from scratch
+   - More complex parsing required
+
+5. **Add Receipt Format Detection**
+   - Detect common store formats (Walmart, Target, etc.)
+   - Use format-specific parsing rules
+   - Improve accuracy for known formats
+
+6. **Better Error Messages**
+   - Show user exactly what was extracted vs what's missing
+   - Suggest which fields to check carefully
+   - Display confidence score more prominently
+
+### Low Priority:
+7. **User Feedback Loop**
+   - Let users mark incorrect extractions
+   - Build training data for better parsing
+   - Track which stores/formats work poorly
+
+---
+
+## 🎯 Testing Notes
+
+### What Works:
+- ✅ Upload interface (drag-and-drop)
+- ✅ Google Cloud Vision API integration
+- ✅ Basic OCR text extraction
+- ✅ Merchant name extraction (generally accurate)
+- ✅ Date extraction (works well with common formats)
+- ✅ Review screen (allows manual corrections)
+- ✅ Transaction creation
+- ✅ Monthly limit counter (500 scans/month)
+
+### What Needs Work:
+- ⚠️ Total amount extraction (often picks subtotal)
+- ⚠️ Tax extraction (gets percentage instead of amount)
+- ⚠️ No item-level extraction
+- ⚠️ Doesn't handle multi-page receipts
+- ⚠️ Struggles with handwritten receipts
+- ⚠️ Poor accuracy on faded/crumpled receipts
+
+### Workaround for Users:
+**The review step is essential!** Always check and manually correct:
+- Total amount (most likely to be wrong)
+- Merchant name (usually correct)
+- Date (usually correct)
 
 ---
 
 ## 🚀 Next Steps
 
-1. **Test the feature** using the testing guide above
-2. **Try different receipts** to verify OCR accuracy
-3. **Report any bugs** or issues
-4. **Consider enhancements** from the "Potential Improvements" list
+1. **Continue testing** with various receipt formats
+2. **Document specific failure patterns** (which stores, which formats)
+3. **Prioritize parser improvements** based on most common failures
+4. **Consider alternative OCR approaches** if accuracy doesn't improve
+5. **Add user feedback mechanism** to identify problem receipts
 
 ---
 
-**Last Updated:** 2025-12-16
-**Total Implementation Time:** ~3 hours
+## 📊 Current Accuracy Estimates
+
+Based on initial testing:
+- **Merchant Name**: ~85% accurate
+- **Date**: ~80% accurate
+- **Total Amount**: ~40% accurate ⚠️ (main issue)
+- **Overall Usability**: **Requires manual review for most receipts**
+
+---
+
+**Last Updated:** 2025-12-16 (Evening Session)
+**Total Implementation Time:** ~4 hours
 **Lines of Code Added:** ~1,200
+**Current Status:** Working but needs accuracy improvements before production use
