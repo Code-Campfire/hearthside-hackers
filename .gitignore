@@ -48,3 +48,11 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Receipt uploads
+backend/uploads/
+uploads/
+
+# Google Cloud credentials
+backend/config/*.json
+config/*.json

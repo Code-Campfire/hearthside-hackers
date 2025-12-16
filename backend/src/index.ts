@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { checkDatabaseConnection } from './db.js';
 import authRouter from './routes/auth.js';
 import transactionRouter from './routes/transaction.js';
+import receiptRouter from './routes/receipt.js';
 
 dotenv.config();
 
@@ -38,6 +39,9 @@ app.use('/api/auth', authRouter);
 
 // Transaction routes
 app.use('/api/transactions', transactionRouter);
+
+// Receipt routes
+app.use('/api/receipts', receiptRouter);
 
 // Start server
 app.listen(PORT, () => {
