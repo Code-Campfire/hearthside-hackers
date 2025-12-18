@@ -6,6 +6,7 @@ import { RegisterPage } from './pages/RegisterPage';
 import { HomePage } from './pages/HomePage';
 import { TransactionPage } from './pages/TransactionPage';
 import { ReceiptScannerPage } from './pages/ReceiptScannerPage';
+import { BillsAndReminders } from './pages/Bills';
 
 function AppContent() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -49,6 +50,14 @@ function AppContent() {
         element={
           <ProtectedRoute>
             <ReceiptScannerPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/bills"
+        element={
+          <ProtectedRoute>
+            <BillsAndReminders />
           </ProtectedRoute>
         }
       />
