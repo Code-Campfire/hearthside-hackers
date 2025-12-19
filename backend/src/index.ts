@@ -6,6 +6,7 @@ import authRouter from './routes/auth.js';
 import transactionRouter from './routes/transaction.js';
 import billsRouter from './routes/bills.js';
 import categoriesRouter from './routes/categories.js';
+import dashboardRouter from './routes/dashboard.js';
 
 dotenv.config();
 
@@ -46,6 +47,9 @@ app.use('/api/bills', billsRouter);
 
 // Categories routes
 app.use('/api/categories', categoriesRouter);
+
+// Dashboard routes
+app.use('/api/dashboard', dashboardRouter);
 
 // Start server
 app.listen(PORT, () => {

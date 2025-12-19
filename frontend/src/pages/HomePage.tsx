@@ -23,7 +23,7 @@ export const HomePage = () => {
         const [statsData, transactionsData, billsData] = await Promise.all([
           dashboardAPI.fetchStats(token),
           dashboardAPI.fetchRecentTransactions(token, 5),
-          dashboardAPI.fetchUpcomingBills(token, 5),
+          dashboardAPI.fetchUpcomingBills(token),
         ]);
 
         setStats(statsData);
@@ -178,7 +178,7 @@ export const HomePage = () => {
                         {bill.category_name && ` • ${bill.category_name}`}
                       </p>
                     </div>
-                    <p className="font-bold text-gray-800">${bill.amount.toFixed(2)}</p>
+                    <p className="font-bold text-gray-800">${bill.amount}</p>
                   </div>
                 ))}
               </div>
