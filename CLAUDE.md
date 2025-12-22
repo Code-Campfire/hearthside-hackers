@@ -192,11 +192,29 @@ This application handles financial data. Critical considerations:
 4. **Validation:** Server-side validation of all transaction amounts, dates, categories
 5. **ACID Compliance:** PostgreSQL transactions for multi-step financial operations
 
+## Receipt Scanner Feature
+
+**Status:** Planned (not yet implemented)
+
+**Documentation:** See `rundown/receipt-scanner-rundown.md` for complete technical details.
+
+**Quick Summary:**
+- Technology: Google Cloud Vision API (free tier: 1,000 requests/month)
+- User uploads receipt image → OCR extracts data → User reviews → Transaction created
+- Backend: Express endpoint with Multer (file upload) + Vision API integration
+- Frontend: React component with drag-and-drop upload + review form
+- Database: New `receipts` table to store OCR results and link to transactions
+
+**When implementing:**
+- Start with backend API endpoint (`POST /api/receipts/scan`)
+- Set up Google Cloud Vision API credentials
+- Create receipt upload UI component
+- Implement text parsing logic for merchant/date/amount extraction
+
 ## Future Development Areas
 
 **Planned Features (See `rundown/techrundown.md`):**
 - Authentication (JWT + bcrypt)
-- Receipt scanning (Tesseract.js or cloud OCR)
 - Recurring transaction detection
 - Budget tracking and alerts
 - Financial reporting/analytics
