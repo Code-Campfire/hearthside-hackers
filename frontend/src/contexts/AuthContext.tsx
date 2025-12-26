@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import axios from 'axios';
 
 interface User {
@@ -83,7 +83,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         email,
         password,
         name,
-      });
+      }
+
+    );
+      console.log({email,password,name});
+
       // After successful registration, user can log in
     } catch (error) {
       console.error('Registration failed:', error);
@@ -114,6 +118,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

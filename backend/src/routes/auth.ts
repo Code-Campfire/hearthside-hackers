@@ -1,5 +1,5 @@
 import { Router, Request, Response } from 'express';
-import { z } from 'zod';
+import { z,ZodError } from 'zod';
 import pool from '../db.js';
 import { hashPassword, verifyPassword, generateToken } from '../auth.js';
 import { authenticateToken } from '../middleware/auth.js';
@@ -63,7 +63,9 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
       res.status(400).json({
         success: false,
         message: 'Validation error',
-        errors: error.errors,
+        errors: 'error.error',
+        )
+        ,
       });
       return;
     }
@@ -111,7 +113,6 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
 
     // Generate JWT token
     const token = generateToken(user.id);
-
     res.status(200).json({
       success: true,
       message: 'Login successful',
