@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { checkDatabaseConnection } from './db.js';
 import authRouter from './routes/auth.js';
 import transactionRouter from './routes/transaction.js';
+import receiptRouter from './routes/receipt.js';
 import billsRouter from './routes/bills.js';
 import categoriesRouter from './routes/categories.js';
 import dashboardRouter from './routes/dashboard.js';
@@ -41,6 +42,9 @@ app.use('/api/auth', authRouter);
 
 // Transaction routes
 app.use('/api/transactions', transactionRouter);
+
+// Receipt routes
+app.use('/api/receipts', receiptRouter);
 
 // Bills routes
 app.use('/api/bills', billsRouter);

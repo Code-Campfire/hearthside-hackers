@@ -5,6 +5,7 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { HomePage } from './pages/HomePage';
 import { TransactionPage } from './pages/TransactionPage';
+import { ReceiptScannerPage } from './pages/ReceiptScannerPage';
 import { BillsAndReminders } from './pages/Bills';
 
 function AppContent() {
@@ -41,6 +42,14 @@ function AppContent() {
         element={
           <ProtectedRoute>
             <TransactionPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/receipts/scan"
+        element={
+          <ProtectedRoute>
+            <ReceiptScannerPage />
           </ProtectedRoute>
         }
       />
