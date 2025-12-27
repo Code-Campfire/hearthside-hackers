@@ -104,8 +104,8 @@ export const HomePage = () => {
               Add Transaction
             </button>
             <button
-              className="bg-gray-300 text-gray-500 font-medium py-3 px-6 rounded-lg cursor-not-allowed"
-              disabled
+              onClick={() => navigate('/receipts/scan')}
+              className="bg-gray-800 hover:bg-black text-white font-medium py-3 px-6 rounded-lg transition"
             >
               Scan Receipt
             </button>
