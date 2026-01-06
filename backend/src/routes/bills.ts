@@ -4,6 +4,24 @@ import pool from '../db.js';
 
 const router = Router();
 
+// Basic XSS sanitization helper
+const sanitizeString = (str: string): string => {
+  return str
+    .trim()
+    .replace(/[<>]/g, '') // Remove < and > to prevent HTML injection
+    .substring(0, 255); // Limit length
+};
+
+// Convert dollars to cents for precise integer storage
+const dollarsToCents = (amount: number): number => {
+  return Math.round(amount * 100);
+};
+
+// Convert cents back to dollars for display
+const centsToDollars = (cents: number): number => {
+  return cents / 100;
+};
+
 declare global {
   namespace Express {
     interface Request {
@@ -41,6 +59,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
       });
       return;
     }
+    const amountInCents = dollarsToCents(parsedAmount);
 
     const parsedDueDay = parseInt(due_day);
     if (isNaN(parsedDueDay) || parsedDueDay < 1 || parsedDueDay > 31) {
@@ -74,17 +93,23 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
 
     const result = await pool.query(query, [
       userId,
-      bill_name.trim(),
-      parsedAmount,
+      sanitizeString(bill_name),
+      amountInCents,
       parsedDueDay,
       category_id || null,
-      is_paid !== undefined ? is_paid : true,
+      is_paid !== undefined ? is_paid : false,
     ]);
+
+    // Convert amount from cents to dollars for response
+    const formattedData = {
+      ...result.rows[0],
+      amount: centsToDollars(result.rows[0].amount)
+    };
 
     res.status(201).json({
       success: true,
       message: 'Bill created successfully',
-      data: result.rows[0],
+      data: formattedData,
     });
   } catch (error) {
     res.status(500).json({
@@ -120,9 +145,14 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
 
     const result = await pool.query(query, queryParams);
 
+    const formattedData = result.rows.map(row => ({
+      ...row,
+      amount: centsToDollars(row.amount)
+    }));
+
     res.status(200).json({
       success: true,
-      data: result.rows,
+      data: formattedData,
     });
   } catch (error) {
     res.status(500).json({
@@ -155,9 +185,14 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response) => {
       return;
     }
 
+    const formattedData = {
+      ...result.rows[0],
+      amount: centsToDollars(result.rows[0].amount)
+    };
+
     res.status(200).json({
       success: true,
-      data: result.rows[0],
+      data: formattedData,
     });
   } catch (error) {
     res.status(500).json({
@@ -201,7 +236,7 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
         return;
       }
       updates.push(`bill_name = $${paramCount}`);
-      values.push(bill_name.trim());
+      values.push(sanitizeString(bill_name));
       paramCount++;
     }
     if (amount !== undefined) {
@@ -214,7 +249,7 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
         return;
       }
       updates.push(`amount = $${paramCount}`);
-      values.push(parsedAmount);
+      values.push(dollarsToCents(parsedAmount));
       paramCount++;
     }
     if (due_day !== undefined) {
@@ -272,10 +307,15 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
 
     const result = await pool.query(updateQuery, [...values, id, userId]);
 
+    const formattedData = {
+      ...result.rows[0],
+      amount: centsToDollars(result.rows[0].amount)
+    };
+
     res.status(200).json({
       success: true,
       message: 'Bill updated successfully',
-      data: result.rows[0],
+      data: formattedData,
     });
   } catch (error) {
     res.status(500).json({
@@ -307,10 +347,15 @@ router.delete('/:id', authenticateToken, async (req: Request, res: Response) => 
       return;
     }
 
+    const formattedData = {
+      ...result.rows[0],
+      amount: centsToDollars(result.rows[0].amount)
+    };
+
     res.status(200).json({
       success: true,
       message: 'Bill deleted successfully',
-      data: result.rows[0],
+      data: formattedData,
     });
   } catch (error) {
     res.status(500).json({
