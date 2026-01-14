@@ -3,6 +3,7 @@ import { z } from 'zod';
 import pool from '../db.js';
 import { hashPassword, verifyPassword, generateToken } from '../auth.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { createRateLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
@@ -18,8 +19,13 @@ const LoginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+const authRateLimiter = createRateLimiter({
+  windowMs: parseInt(process.env.AUTH_RATE_LIMIT_WINDOW_MS || '900000', 10),
+  max: parseInt(process.env.AUTH_RATE_LIMIT_MAX || '20', 10),
+});
+
 // Register endpoint
-router.post('/register', async (req: Request, res: Response): Promise<void> => {
+router.post('/register', authRateLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     // Validate request body
     const { email, password, name } = RegisterSchema.parse(req.body);
@@ -58,12 +64,21 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
         created_at: user.created_at,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof z.ZodError) {
+      const flattened = error.flatten();
+
+      const errors = Object.fromEntries(
+        Object.entries(flattened.fieldErrors).map(([field, msgs]) => [
+          field,
+          msgs?.[0] ?? 'Invalid value',
+        ])
+      );
+
       res.status(400).json({
         success: false,
-        message: 'Validation error',
-        errors: error.errors,
+        message: 'Validation failed',
+        errors, // <-- { email: "...", password: "..." }
       });
       return;
     }
@@ -74,10 +89,11 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
       message: 'Internal server error',
     });
   }
+
 });
 
 // Login endpoint
-router.post('/login', async (req: Request, res: Response): Promise<void> => {
+router.post('/login', authRateLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     // Validate request body
     const { email, password } = LoginSchema.parse(req.body);
@@ -121,15 +137,24 @@ router.post('/login', async (req: Request, res: Response): Promise<void> => {
         email: user.email,
       },
     });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      res.status(400).json({
-        success: false,
-        message: 'Validation error',
-        errors: error.errors,
-      });
-      return;
-    }
+} catch (error: any) {
+  if (error instanceof z.ZodError) {
+    const flattened = error.flatten();
+
+    const errors = Object.fromEntries(
+      Object.entries(flattened.fieldErrors).map(([field, msgs]) => [
+        field,
+        msgs?.[0] ?? 'Invalid value',
+      ])
+    );
+
+    res.status(400).json({
+      success: false,
+      message: 'Validation failed',
+      errors, // <-- { email: "...", password: "..." }
+    });
+    return;
+  }
 
     console.error('Login error:', error);
     res.status(500).json({

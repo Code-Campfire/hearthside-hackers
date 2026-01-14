@@ -71,10 +71,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setToken(newToken);
       setUser(userData);
       localStorage.setItem('authToken', newToken);
-    } catch (error) {
-      console.error('Login failed:', error);
-      throw error;
+} catch (error: any) {
+  console.error('Login failed:', error);
+
+  if (error.response?.data) {
+    const { message, errors } = error.response.data;
+
+    if (errors && typeof errors === 'object' && !Array.isArray(errors)) {
+      throw {
+        message: message || 'Please fix the highlighted fields.',
+        errors,
+      };
     }
+
+    if (errors && Array.isArray(errors)) {
+      const errorMessages = errors.map((err: any) => err.message).join(', ');
+      throw { message: errorMessages || message || 'Login failed' };
+    }
+
+    if (message) {
+      throw { message };
+    }
+  }
+
+  throw { message: 'Login failed. Please check your credentials.' };
+}
+
   };
 
   const register = async (email: string, password: string, name?: string) => {
@@ -85,10 +107,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         name,
       });
       // After successful registration, user can log in
-    } catch (error) {
-      console.error('Registration failed:', error);
-      throw error;
+} catch (error: any) {
+  console.error('Registration failed:', error);
+
+  if (error.response?.data) {
+    const { message, errors } = error.response.data;
+
+    // ✅ NEW: field-level errors from backend (object map)
+    if (errors && typeof errors === 'object' && !Array.isArray(errors)) {
+      throw {
+        message: message || 'Please fix the highlighted fields.',
+        errors, // { email?: string, password?: string }
+      };
     }
+
+    // 🧯 fallback for older array-style errors
+    if (errors && Array.isArray(errors)) {
+      const errorMessages = errors.map((err: any) => err.message).join(', ');
+      throw { message: errorMessages || message || 'Registration failed' };
+    }
+
+    if (message) {
+      throw { message };
+    }
+  }
+
+  throw { message: 'Registration failed. Please try again.' };
+}
+
   };
 
   const logout = () => {
