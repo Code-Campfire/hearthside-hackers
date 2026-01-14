@@ -12,21 +12,18 @@ export interface ParsedReceipt {
   confidence: 'high' | 'medium' | 'low';
 }
 
+interface AmountWithPosition {
+  amount: number;
+  lineIndex: number;
+  raw: string;
+}
+
 export function parseReceiptText(ocrText: string, lines: string[]): ParsedReceipt {
   const merchant = extractMerchant(lines);
   const date = extractDate(ocrText);
-  let total = extractTotal(ocrText, lines);
-  const subtotal = extractSubtotal(ocrText);
-  const tax = extractTax(ocrText);
 
-  // If total not found but we have subtotal and tax, calculate it
-  if (!total && subtotal !== null && tax !== null) {
-    total = subtotal + tax;
-  }
-  // If we have subtotal but total seems wrong (total < subtotal), recalculate
-  else if (total !== null && subtotal !== null && total < subtotal && tax !== null) {
-    total = subtotal + tax;
-  }
+  // Use heuristic-based extraction for financial amounts
+  const { total, subtotal, tax } = extractFinancialAmounts(lines);
 
   // Calculate confidence based on what we found
   const confidence = calculateParsingConfidence(merchant, date, total);
@@ -44,22 +41,92 @@ export function parseReceiptText(ocrText: string, lines: string[]): ParsedReceip
   };
 }
 
-function extractMerchant(lines: string[]): string | null {
-  // Merchant is usually in first 3 lines, longest line, all caps
-  const topLines = lines.slice(0, 3);
+/**
+ * Heuristic-based extraction of financial amounts.
+ * Uses simple, reliable rules that work across receipt formats:
+ * - TOTAL = largest amount on the receipt
+ * - SUBTOTAL = second largest amount
+ * - TAX = total - subtotal (calculated)
+ */
+function extractFinancialAmounts(lines: string[]): {
+  total: number | null;
+  subtotal: number | null;
+  tax: number | null;
+} {
+  // Step 1: Extract all dollar amounts with their line positions
+  const amounts = extractAllAmountsWithPositions(lines);
 
-  // Filter out very short lines and lines with numbers/symbols
+  if (amounts.length === 0) {
+    return { total: null, subtotal: null, tax: null };
+  }
+
+  // Step 2: Sort amounts by value (descending)
+  const sortedByValue = [...amounts].sort((a, b) => b.amount - a.amount);
+
+  // Step 3: Total = largest amount (most reliable heuristic)
+  const total = sortedByValue[0]?.amount ?? null;
+
+  // Step 4: Subtotal = second largest amount
+  let subtotal: number | null = null;
+  if (sortedByValue.length >= 2) {
+    subtotal = sortedByValue[1]?.amount ?? null;
+  }
+
+  // Step 5: Tax = total - subtotal (calculated, very reliable)
+  let tax: number | null = null;
+  if (total !== null && subtotal !== null) {
+    const calculatedTax = Math.round((total - subtotal) * 100) / 100;
+    // Sanity check: tax should be positive and reasonable (less than 25% of total)
+    if (calculatedTax > 0 && calculatedTax < total * 0.25) {
+      tax = calculatedTax;
+    }
+  }
+
+  return { total, subtotal, tax };
+}
+
+/**
+ * Extract all dollar amounts from lines with their positions
+ */
+function extractAllAmountsWithPositions(lines: string[]): AmountWithPosition[] {
+  const amounts: AmountWithPosition[] = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    // Match amounts with $ sign (more reliable)
+    const dollarMatches = line.matchAll(/\$\s*(\d+\.\d{2})/g);
+    for (const match of dollarMatches) {
+      amounts.push({
+        amount: parseFloat(match[1]),
+        lineIndex: i,
+        raw: match[0]
+      });
+    }
+  }
+
+  return amounts;
+}
+
+function extractMerchant(lines: string[]): string | null {
+  // Merchant is usually the first line that looks like a business name
+  const topLines = lines.slice(0, 5);
+
+  // Filter out lines that look like addresses, phone numbers, etc.
   const candidates = topLines.filter(line => {
     const cleaned = line.trim();
     return cleaned.length > 3 &&
            !/^\d+$/.test(cleaned) && // Not just numbers
-           !/^[^a-zA-Z]+$/.test(cleaned); // Contains letters
+           !/^[^a-zA-Z]+$/.test(cleaned) && // Contains letters
+           !/^\d+\s+\w+\s+(st|street|ave|avenue|rd|road|blvd|dr|drive|ln|lane)/i.test(cleaned) && // Not an address
+           !/^\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/.test(cleaned) && // Not a phone number
+           !/^[A-Z]{2}\s+\d{5}/.test(cleaned) && // Not "STATE ZIP" pattern
+           !/,\s*[A-Z]{2}\s+\d{5}/.test(cleaned); // Not "CITY, STATE ZIP" pattern
   });
 
   if (candidates.length === 0) return null;
 
-  // Return longest line as merchant
-  const merchant = candidates.reduce((a, b) => a.length > b.length ? a : b);
+  // Prefer the first valid candidate (usually the store name)
+  const merchant = candidates[0];
 
   // Clean up common suffixes
   return cleanMerchantName(merchant);
@@ -118,61 +185,6 @@ function parseDate(dateStr: string): string {
   } catch {
     return dateStr;
   }
-}
-
-function extractTotal(text: string, lines: string[]): number | null {
-  // Look for "TOTAL" keyword followed by amount
-  const totalPattern = /(?:total|amount\s+due|balance)[\s:]*\$?\s*(\d+\.\d{2})/i;
-  const match = text.match(totalPattern);
-
-  if (match) {
-    return parseFloat(match[1]);
-  }
-
-  // Fallback: largest amount in bottom 30% of receipt
-  const bottomLines = lines.slice(Math.floor(lines.length * 0.7));
-  const amounts = extractAllAmounts(bottomLines.join('\n'));
-
-  if (amounts.length > 0) {
-    return Math.max(...amounts);
-  }
-
-  return null;
-}
-
-function extractSubtotal(text: string): number | null {
-  const pattern = /subtotal[\s:]*\$?\s*(\d+\.\d{2})/i;
-  const match = text.match(pattern);
-  return match ? parseFloat(match[1]) : null;
-}
-
-function extractTax(text: string): number | null {
-  // Try to find tax with dollar sign first (more reliable)
-  const dollarPattern = /(?:tax|sales\s+tax)[\s:$]*(\d+\.\d{2})/i;
-  const match = text.match(dollarPattern);
-
-  if (match) {
-    const amount = parseFloat(match[1]);
-    // Sanity check: tax should be reasonable (< $1000 and > $0.01)
-    // Also, if it's a small number like 6.25, it might be a percentage, not an amount
-    if (amount > 0.01 && amount < 1000 && amount > 1) {
-      return amount;
-    }
-  }
-
-  return null;
-}
-
-function extractAllAmounts(text: string): number[] {
-  const pattern = /\$?\s*(\d{1,6}\.\d{2})/g;
-  const amounts: number[] = [];
-  let match;
-
-  while ((match = pattern.exec(text)) !== null) {
-    amounts.push(parseFloat(match[1]));
-  }
-
-  return amounts;
 }
 
 function extractRawDate(text: string): string | null {
