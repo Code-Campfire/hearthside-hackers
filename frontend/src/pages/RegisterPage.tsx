@@ -2,31 +2,46 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
+type FieldErrors = Partial<Record<'name' | 'email' | 'password', string>>;
+
 export const RegisterPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [isLoading, setIsLoading] = useState(false);
+
   const navigate = useNavigate();
   const { register } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
     setIsLoading(true);
 
     try {
       await register(email, password, name);
-      // Registration successful, redirect to login
-      navigate('/login', { state: { message: 'Registration successful! Please log in.' } });
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Registration failed';
-      setError(errorMessage);
+      navigate('/login', {
+        state: { message: 'Registration successful! Please log in.' },
+      });
+    } catch (err: any) {
+      if (err?.errors) {
+        setFieldErrors(err.errors);
+        setError(err.message || 'Please fix the highlighted fields.');
+      } else {
+        setError(err?.message || 'Registration failed');
+      }
     } finally {
       setIsLoading(false);
     }
   };
+
+  const inputClass = (hasError: boolean) =>
+    `mt-1 w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none ${
+      hasError ? 'border-red-500' : 'border-gray-300'
+    }`;
 
   return (
     <div className="min-h-screen bg-gray-100 flex items-center justify-center py-12 px-4">
@@ -51,9 +66,12 @@ export const RegisterPage = () => {
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              className={inputClass(!!fieldErrors.name)}
               placeholder="John Doe"
             />
+            {fieldErrors.name && (
+              <p className="mt-1 text-sm text-red-600">{fieldErrors.name}</p>
+            )}
           </div>
 
           <div>
@@ -66,9 +84,12 @@ export const RegisterPage = () => {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              className={inputClass(!!fieldErrors.email)}
               placeholder="you@example.com"
             />
+            {fieldErrors.email && (
+              <p className="mt-1 text-sm text-red-600">{fieldErrors.email}</p>
+            )}
           </div>
 
           <div>
@@ -81,9 +102,12 @@ export const RegisterPage = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              className={inputClass(!!fieldErrors.password)}
               placeholder="••••••••"
             />
+            {fieldErrors.password && (
+              <p className="mt-1 text-sm text-red-600">{fieldErrors.password}</p>
+            )}
           </div>
 
           <button
