@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id),
   amount DECIMAL(12, 2) NOT NULL,
-  transaction_date VARCHAR NOT NULL,
+  transaction_date DATE NOT NULL,
   description VARCHAR(255),
   merchant_name VARCHAR(120),
   transaction_type VARCHAR(10) NOT NULL,
@@ -38,7 +38,7 @@ CREATE TABLE IF NOT EXISTS receipts (
   image_url VARCHAR(500) NOT NULL,
   merchant_name VARCHAR(100),
   total_amount DECIMAL(12, 2),
-  receipt_date VARCHAR,
+  receipt_date DATE,
   extracted_data JSON,
   processing_status VARCHAR(20) DEFAULT 'pending',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS goals (
   goal_name VARCHAR(100) NOT NULL,
   target_amount DECIMAL(12, 2) NOT NULL,
   current_amount DECIMAL(12, 2) DEFAULT 0,
-  deadline VARCHAR,
+  deadline DATE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

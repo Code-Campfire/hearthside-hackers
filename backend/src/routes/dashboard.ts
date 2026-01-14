@@ -4,10 +4,6 @@ import pool from '../db.js';
 
 const router = Router();
 
-const centsToDollars = (cents: number): number => {
-  return cents / 100;
-};
-
 declare global {
   namespace Express {
     interface Request {
@@ -38,12 +34,12 @@ router.get('/income', authenticateToken, async (req: Request, res: Response) => 
       endOfMonth.toISOString().split('T')[0],
     ]);
 
-    const totalInCents = parseInt(incomeResult.rows[0].total_income);
+    const totalIncome = parseFloat(incomeResult.rows[0].total_income);
 
     res.status(200).json({
       success: true,
       data: {
-        monthlyIncome: centsToDollars(totalInCents),
+        monthlyIncome: totalIncome,
       },
     });
   } catch (error) {
@@ -77,12 +73,12 @@ router.get('/expenses', authenticateToken, async (req: Request, res: Response) =
       endOfMonth.toISOString().split('T')[0],
     ]);
 
-    const totalInCents = parseInt(expenseResult.rows[0].total_expenses);
+    const totalExpenses = parseFloat(expenseResult.rows[0].total_expenses);
 
     res.status(200).json({
       success: true,
       data: {
-        monthlyExpenses: centsToDollars(totalInCents),
+        monthlyExpenses: totalExpenses,
       },
     });
   } catch (error) {

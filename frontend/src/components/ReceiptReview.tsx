@@ -21,7 +21,9 @@ export function ReceiptReview({
 }: ReceiptReviewProps) {
   const [formData, setFormData] = useState<ReceiptFormData>({
     merchant_name: initialData.merchant || '',
-    transaction_date: initialData.date || new Date().toISOString().split('T')[0],
+    transaction_date: initialData.date
+      ? initialData.date.split('T')[0]
+      : new Date().toISOString().split('T')[0],
     amount: initialData.total !== null && initialData.total !== undefined
       ? (typeof initialData.total === 'number' ? initialData.total.toFixed(2) : String(initialData.total))
       : '',

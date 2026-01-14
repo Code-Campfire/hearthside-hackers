@@ -110,7 +110,7 @@ export function TransactionPage() {
                         <button onClick={() => setIsModalOpen(true)} className="bg-black hover:bg-gray-800 text-white font-bold py-2 px-6 rounded-lg transition">
                             Add Transaction
                         </button>
-                        <button className="bg-white hover:bg-gray-100 text-black font-bold py-2 px-6 rounded-lg transition border border-gray-300">
+                        <button onClick={() => navigate('/receipts/scan')} className="bg-white hover:bg-gray-100 text-black font-bold py-2 px-6 rounded-lg transition border border-gray-300">
                             Scan Receipt
                         </button>
                         <button

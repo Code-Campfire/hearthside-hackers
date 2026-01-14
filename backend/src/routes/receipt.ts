@@ -28,6 +28,14 @@ router.post(
       const userId = req.userId;
       const file = req.file;
 
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Unauthorized',
+        });
+        return;
+      }
+
       if (!file) {
         res.status(400).json({
           success: false,
@@ -108,11 +116,37 @@ router.post(
   }
 );
 
+// GET /api/receipts/limit - Check current scan limit
+router.get('/limit', authenticateToken, async (_req: Request, res: Response) => {
+  try {
+    const stats = await getCurrentCount();
+
+    res.status(200).json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get limit info',
+      error: error instanceof Error ? error.message : 'Unknown error',
+    });
+  }
+});
+
 // GET /api/receipts/:id - Get receipt details
 router.get('/:id', authenticateToken, async (req: Request, res: Response) => {
   try {
     const userId = req.userId;
     const { id } = req.params;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: 'Unauthorized',
+      });
+      return;
+    }
 
     const query = `
       SELECT * FROM receipts
@@ -149,6 +183,14 @@ router.post('/:id/confirm', authenticateToken, async (req: Request, res: Respons
     const { id } = req.params;
     const { merchant_name, transaction_date, amount, description, category_id } = req.body;
 
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: 'Unauthorized',
+      });
+      return;
+    }
+
     // Validate required fields
     if (!merchant_name || !transaction_date || !amount) {
       res.status(400).json({
@@ -172,6 +214,30 @@ router.post('/:id/confirm', authenticateToken, async (req: Request, res: Respons
       return;
     }
 
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      res.status(400).json({
+        success: false,
+        message: 'amount must be a valid positive number',
+      });
+      return;
+    }
+
+    if (category_id !== undefined && category_id !== null) {
+      const categoryCheck = await pool.query(
+        'SELECT id FROM categories WHERE id = $1 AND user_id = $2 AND is_active = true',
+        [category_id, userId]
+      );
+
+      if (categoryCheck.rows.length === 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid category_id: category does not exist or does not belong to this user',
+        });
+        return;
+      }
+    }
+
     // Create transaction
     const transactionQuery = `
       INSERT INTO transactions (
@@ -189,7 +255,7 @@ router.post('/:id/confirm', authenticateToken, async (req: Request, res: Respons
 
     const transactionResult = await pool.query(transactionQuery, [
       userId,
-      parseFloat(amount),
+      parsedAmount,
       transaction_date,
       description || `Receipt from ${merchant_name}`,
       merchant_name,
@@ -214,24 +280,6 @@ router.post('/:id/confirm', authenticateToken, async (req: Request, res: Respons
     res.status(500).json({
       success: false,
       message: 'Failed to create transaction',
-      error: error instanceof Error ? error.message : 'Unknown error',
-    });
-  }
-});
-
-// GET /api/receipts/limit - Check current scan limit
-router.get('/limit', authenticateToken, async (req: Request, res: Response) => {
-  try {
-    const stats = await getCurrentCount();
-
-    res.status(200).json({
-      success: true,
-      data: stats
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get limit info',
       error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
