@@ -42,6 +42,7 @@ services:
       - /app/node_modules
       - ./backend/config:/app/config
       - ./backend/uploads:/app/uploads
+    command: sh -c "sleep 3 && npm run migrate && npm run dev"
 
   # Frontend React App
   frontend:

@@ -31,8 +31,16 @@ A personal finance application built with React, Node.js, Express, and PostgreSQ
 
    This will start three containers:
    - PostgreSQL database
-   - Node.js backend API
+   - Node.js backend API (automatically runs database migrations on startup)
    - React frontend application
+
+   **First-time setup:** Database migrations will run automatically, creating all necessary tables:
+   - users
+   - categories (with 18 default categories per user)
+   - transactions
+   - receipts
+   - bills
+   - goals
 
 4. **Access the application**
    - Frontend: http://localhost:5174
@@ -129,7 +137,15 @@ docker-compose up -d --build
 
 ## Database
 
-The PostgreSQL database is initialized with an empty schema. The development team will create schema migrations as needed.
+The PostgreSQL database is automatically initialized with the full schema when you start the application for the first time. Database migrations are handled by `backend/scripts/run-migrations.js` which runs on backend startup.
+
+**Database Schema Includes:**
+- `users` - User accounts with authentication
+- `categories` - Expense/income categories (18 defaults created per user)
+- `transactions` - Financial transactions
+- `receipts` - Receipt uploads with OCR data
+- `bills` - Recurring bills
+- `goals` - Savings goals
 
 **Database Credentials** (for development):
 - Host: localhost (or `database` within Docker network)
@@ -137,6 +153,64 @@ The PostgreSQL database is initialized with an empty schema. The development tea
 - Database: budget_analyzer
 - User: postgres
 - Password: postgres
+
+### Manual Database Access
+
+```bash
+# Connect to database
+docker exec -it budget-analyzer-db psql -U postgres -d budget_analyzer
+
+# View all tables
+\dt
+
+# Exit
+\q
+```
+
+## Troubleshooting
+
+### Backend won't start or shows migration errors
+
+**Check backend logs:**
+```bash
+docker-compose logs backend
+```
+
+**Look for migration output:**
+- `🔄 Starting database migrations...`
+- `✅ Migration 001 complete (tables created)`
+- `✅ Migration 002 complete (trigger created)`
+
+**If migrations fail:**
+1. Ensure database is healthy: `docker-compose ps`
+2. Restart backend: `docker-compose restart backend`
+3. If still failing, recreate containers: `docker-compose up -d --force-recreate`
+
+### Registration fails with "relation does not exist" error
+
+This means migrations didn't run. Fix:
+
+```bash
+# Recreate backend container to trigger migrations
+docker-compose up -d --force-recreate backend
+
+# Verify tables were created
+docker exec budget-analyzer-db psql -U postgres -d budget_analyzer -c "\dt"
+
+# Should show 6 tables: bills, categories, goals, receipts, transactions, users
+```
+
+### Frontend shows "Not Connected"
+
+1. Verify backend is running: `docker-compose ps`
+2. Check backend health: `curl http://localhost:3001/api/health`
+3. Check CORS configuration in `backend/src/index.ts`
+
+### Port conflicts
+
+If you see "port already allocated" errors:
+- Change port mappings in `docker-compose.yml`
+- Or stop conflicting services on your machine
 
 ## Next Steps
 
