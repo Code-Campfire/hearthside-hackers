@@ -3,6 +3,7 @@ import { z } from 'zod';
 import pool from '../db.js';
 import { hashPassword, verifyPassword, generateToken } from '../auth.js';
 import { authenticateToken } from '../middleware/auth.js';
+import { createRateLimiter } from '../middleware/rateLimit.js';
 
 const router = Router();
 
@@ -18,8 +19,13 @@ const LoginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+const authRateLimiter = createRateLimiter({
+  windowMs: parseInt(process.env.AUTH_RATE_LIMIT_WINDOW_MS || '900000', 10),
+  max: parseInt(process.env.AUTH_RATE_LIMIT_MAX || '20', 10),
+});
+
 // Register endpoint
-router.post('/register', async (req: Request, res: Response): Promise<void> => {
+router.post('/register', authRateLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     // Validate request body
     const { email, password, name } = RegisterSchema.parse(req.body);
@@ -87,7 +93,7 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
 });
 
 // Login endpoint
-router.post('/login', async (req: Request, res: Response): Promise<void> => {
+router.post('/login', authRateLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     // Validate request body
     const { email, password } = LoginSchema.parse(req.body);

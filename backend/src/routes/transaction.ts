@@ -14,8 +14,16 @@ declare global {
 
 router.post('/', authenticateToken, async (req: Request, res: Response) => {
   try {
-    const userId = req.userId
-    const { amount, transaction_date, description, merchant_name, transaction_type, category_id} = req.body
+    const userId = req.userId;
+    const { amount, transaction_date, description, merchant_name, transaction_type, category_id } = req.body;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: 'Unauthorized',
+      });
+      return;
+    }
 
     if (!amount || !transaction_date || !transaction_type || !merchant_name) {
       res.status(400).json({
@@ -26,10 +34,38 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
       return;
     }
 
-    if (!['income', 'expense'].includes(transaction_type.toLowerCase())) {
-      res.status(400).json({ success: false, message: 'transaction_type must be either "income" or "expense"'})
-      return
+    if (typeof transaction_type !== 'string' || !['income', 'expense'].includes(transaction_type.toLowerCase())) {
+      res.status(400).json({
+        success: false,
+        message: 'transaction_type must be either "income" or "expense"',
+      });
+      return;
     }
+
+    const parsedAmount = parseFloat(amount);
+    if (isNaN(parsedAmount) || parsedAmount <= 0) {
+      res.status(400).json({
+        success: false,
+        message: 'amount must be a valid positive number',
+      });
+      return;
+    }
+
+    if (category_id !== undefined && category_id !== null) {
+      const categoryCheck = await pool.query(
+        'SELECT id FROM categories WHERE id = $1 AND user_id = $2 AND is_active = true',
+        [category_id, userId]
+      );
+
+      if (categoryCheck.rows.length === 0) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid category_id: category does not exist or does not belong to this user',
+        });
+        return;
+      }
+    }
+
     const query = `
       INSERT INTO transactions (user_id, amount, transaction_date, description, merchant_name, transaction_type, category_id)
       VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -37,7 +73,7 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
     `
     const result = await pool.query(query, [
       userId,
-      parseFloat(amount),
+      parsedAmount,
       transaction_date,
       description || null,
       merchant_name,
@@ -152,7 +188,15 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
   try {
     const userId = req.userId;
     const { id } = req.params;
-    const {amount, transaction_date, description, merchant_name, transaction_type, category_id} = req.body;
+    const { amount, transaction_date, description, merchant_name, transaction_type, category_id } = req.body;
+
+    if (!userId) {
+      res.status(401).json({
+        success: false,
+        message: 'Unauthorized',
+      });
+      return;
+    }
 
     const checkQuery = `
       SELECT * FROM transactions
@@ -173,8 +217,16 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
     let paramCount = 1;
 
     if (amount !== undefined) {
+      const parsedAmount = parseFloat(amount);
+      if (isNaN(parsedAmount) || parsedAmount <= 0) {
+        res.status(400).json({
+          success: false,
+          message: 'amount must be a valid positive number',
+        });
+        return;
+      }
       updates.push(`amount = $${paramCount}`);
-      values.push(parseFloat(amount));
+      values.push(parsedAmount);
       paramCount++;
     }
     if (transaction_date !== undefined) {
@@ -193,7 +245,7 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
       paramCount++;
     }
     if (transaction_type !== undefined) {
-      if (!['income', 'expense'].includes(transaction_type.toLowerCase())) {
+      if (typeof transaction_type !== 'string' || !['income', 'expense'].includes(transaction_type.toLowerCase())) {
         res.status(400).json({
           success: false,
           message: 'transaction_type must be either "income" or "expense"',
@@ -205,6 +257,20 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
       paramCount++;
     }
     if (category_id !== undefined) {
+      if (category_id !== null) {
+        const categoryCheck = await pool.query(
+          'SELECT id FROM categories WHERE id = $1 AND user_id = $2 AND is_active = true',
+          [category_id, userId]
+        );
+
+        if (categoryCheck.rows.length === 0) {
+          res.status(400).json({
+            success: false,
+            message: 'Invalid category_id: category does not exist or does not belong to this user',
+          });
+          return;
+        }
+      }
       updates.push(`category_id = $${paramCount}`);
       values.push(category_id);
       paramCount++;

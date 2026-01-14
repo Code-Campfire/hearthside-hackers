@@ -12,16 +12,6 @@ const sanitizeString = (str: string): string => {
     .substring(0, 255); // Limit length
 };
 
-// Convert dollars to cents for precise integer storage
-const dollarsToCents = (amount: number): number => {
-  return Math.round(amount * 100);
-};
-
-// Convert cents back to dollars for display
-const centsToDollars = (cents: number): number => {
-  return cents / 100;
-};
-
 declare global {
   namespace Express {
     interface Request {
@@ -59,8 +49,6 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
       });
       return;
     }
-    const amountInCents = dollarsToCents(parsedAmount);
-
     const parsedDueDay = parseInt(due_day);
     if (isNaN(parsedDueDay) || parsedDueDay < 1 || parsedDueDay > 31) {
       res.status(400).json({
@@ -94,22 +82,16 @@ router.post('/', authenticateToken, async (req: Request, res: Response) => {
     const result = await pool.query(query, [
       userId,
       sanitizeString(bill_name),
-      amountInCents,
+      parsedAmount,
       parsedDueDay,
       category_id || null,
       is_paid !== undefined ? is_paid : false,
     ]);
 
-    // Convert amount from cents to dollars for response
-    const formattedData = {
-      ...result.rows[0],
-      amount: centsToDollars(result.rows[0].amount)
-    };
-
     res.status(201).json({
       success: true,
       message: 'Bill created successfully',
-      data: formattedData,
+      data: result.rows[0],
     });
   } catch (error) {
     res.status(500).json({
@@ -145,14 +127,9 @@ router.get('/', authenticateToken, async (req: Request, res: Response) => {
 
     const result = await pool.query(query, queryParams);
 
-    const formattedData = result.rows.map(row => ({
-      ...row,
-      amount: centsToDollars(row.amount)
-    }));
-
     res.status(200).json({
       success: true,
-      data: formattedData,
+      data: result.rows,
     });
   } catch (error) {
     res.status(500).json({
@@ -185,14 +162,9 @@ router.get('/:id', authenticateToken, async (req: Request, res: Response) => {
       return;
     }
 
-    const formattedData = {
-      ...result.rows[0],
-      amount: centsToDollars(result.rows[0].amount)
-    };
-
     res.status(200).json({
       success: true,
-      data: formattedData,
+      data: result.rows[0],
     });
   } catch (error) {
     res.status(500).json({
@@ -249,7 +221,7 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
         return;
       }
       updates.push(`amount = $${paramCount}`);
-      values.push(dollarsToCents(parsedAmount));
+      values.push(parsedAmount);
       paramCount++;
     }
     if (due_day !== undefined) {
@@ -307,15 +279,10 @@ router.put('/:id', authenticateToken, async (req: Request, res: Response) => {
 
     const result = await pool.query(updateQuery, [...values, id, userId]);
 
-    const formattedData = {
-      ...result.rows[0],
-      amount: centsToDollars(result.rows[0].amount)
-    };
-
     res.status(200).json({
       success: true,
       message: 'Bill updated successfully',
-      data: formattedData,
+      data: result.rows[0],
     });
   } catch (error) {
     res.status(500).json({
@@ -347,15 +314,10 @@ router.delete('/:id', authenticateToken, async (req: Request, res: Response) => 
       return;
     }
 
-    const formattedData = {
-      ...result.rows[0],
-      amount: centsToDollars(result.rows[0].amount)
-    };
-
     res.status(200).json({
       success: true,
       message: 'Bill deleted successfully',
-      data: formattedData,
+      data: result.rows[0],
     });
   } catch (error) {
     res.status(500).json({

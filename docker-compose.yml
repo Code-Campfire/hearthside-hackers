@@ -32,6 +32,11 @@ services:
       DB_NAME: budget_analyzer
       DB_USER: postgres
       DB_PASSWORD: postgres
+      JWT_SECRET: mzo9Kd4wPL18E4ldW3tKXu3Zh36-2ZhZF1jxfwL8gLbh61j24WCQEl2p5tpqVcGy
+      JWT_EXPIRES_IN: 7d
+      CORS_ORIGIN: http://localhost:5174
+      AUTH_RATE_LIMIT_WINDOW_MS: 900000
+      AUTH_RATE_LIMIT_MAX: 20
     ports:
       - "3001:3001"
     depends_on:
