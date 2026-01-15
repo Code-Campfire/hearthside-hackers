@@ -8,6 +8,8 @@ Personal Budget Analyzer is a personal finance application that helps users cent
 
 **Current State:** Fully functional application with user authentication, transaction management, bill tracking, category management, dashboard analytics, and receipt OCR scanning via Google Cloud Vision API.
 
+**Production URL:** https://budget.charliewunderlich.com (AWS EC2 + nginx + HTTPS via certbot)
+
 ## Development Commands
 
 ### Docker (Primary Development Method)
@@ -354,6 +356,13 @@ VITE_API_URL=http://localhost:3001
 5. User reviews/edits extracted data
 6. Confirmation creates transaction linked to receipt
 
+**Parsing Heuristics (receiptParser.ts):**
+- **Total:** Largest dollar amount on receipt
+- **Subtotal:** Second largest dollar amount
+- **Tax:** Calculated as total - subtotal (validated < 25% of total)
+- **Merchant:** First non-address, non-phone line in top 5 lines
+- **Date:** First date pattern found (MM/DD/YYYY, YYYY-MM-DD, etc.)
+
 **Monthly Limit:** 500 scans per month (tracked in database)
 
 ## Fresh Setup Instructions
@@ -380,6 +389,51 @@ docker exec -i budget-analyzer-db psql -U postgres -d budget_analyzer < backend/
 curl http://localhost:3001/api/health
 
 # 7. Access frontend at http://localhost:5174
+```
+
+## Production Deployment (AWS EC2)
+
+**Server:** EC2 instance at `3.14.11.73`
+**Domain:** `budget.charliewunderlich.com`
+**SSH:** `ssh -i ~/.ssh/budget-analyzer-key.pem ubuntu@3.14.11.73`
+
+### Deployment Steps
+
+```bash
+# SSH into EC2
+ssh -i ~/.ssh/budget-analyzer-key.pem ubuntu@3.14.11.73
+cd ~/hearthside-hackers
+
+# Pull latest from develop
+git pull origin develop
+
+# Rebuild containers
+docker-compose down
+docker-compose up -d --build
+```
+
+### Key Production Config
+
+**docker-compose.yml environment:**
+- `JWT_SECRET` - Strong unique secret (not the dev one)
+- `CORS_ORIGIN=https://budget.charliewunderlich.com`
+
+**frontend/.env:**
+- `VITE_API_URL=https://budget.charliewunderlich.com`
+
+**vite.config.ts:**
+- `allowedHosts: ['budget.charliewunderlich.com']`
+
+### Seed Demo Data
+
+```bash
+docker exec -i budget-analyzer-db psql -U postgres -d budget_analyzer < backend/scripts/seed-demo-data.sql
+```
+
+### HTTPS Setup (already configured)
+
+```bash
+sudo certbot --nginx -d budget.charliewunderlich.com
 ```
 
 ## Common Issues
@@ -417,10 +471,15 @@ curl http://localhost:3001/api/health
 - Frontend: Change `5174` in docker-compose.yml
 - Backend: Change `PORT` in docker-compose.yml
 
+## Pending Features
+
+**Savings Goals:** The goals table exists but the UI is not yet implemented. Schema supports:
+- `goal_name`, `target_amount`, `current_amount`, `deadline`
+
 ## Additional Resources
 
 - Technical details: `rundown/techrundown.md`
 - Receipt scanner docs: `rundown/receipt-scanner-rundown.md`
 - Authorization flow: `rundown/authorization_process.md`
 - Deployment notes: `rundown/deployment-progress.md`
-- Today's changes: `CHANGES_TODAY.md`
+- Demo data script: `backend/scripts/seed-demo-data.sql`
