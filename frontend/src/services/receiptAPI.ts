@@ -1,7 +1,7 @@
 import axios, { AxiosError } from 'axios';
 import type { ScanReceiptResponse, Receipt } from '../types/receipt';
 
-const API_URL = 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 interface ApiError {
   success: false;
