@@ -34,9 +34,10 @@ BEGIN
     SELECT id INTO health_cat_id FROM categories WHERE name = 'Healthcare' AND (user_id = demo_user_id OR user_id IS NULL) LIMIT 1;
 
     -- Clear existing demo data for this user (optional - comment out to keep adding)
+    -- Delete in correct order due to foreign key constraints
+    DELETE FROM receipts WHERE user_id = demo_user_id;
     DELETE FROM transactions WHERE user_id = demo_user_id;
     DELETE FROM bills WHERE user_id = demo_user_id;
-    DELETE FROM receipts WHERE user_id = demo_user_id;
 
     RAISE NOTICE 'Cleared existing data for user';
 
